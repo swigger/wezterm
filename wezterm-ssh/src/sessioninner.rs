@@ -111,13 +111,10 @@ impl SessionInner {
         // On Windows, create a Unix socket bridge to the Windows SSH agent if needed
         #[cfg(windows)]
         let _agent_bridge = {
-            let needs_bridge = self.config
-                .get("identityagent")
-                .map(|agent| agent.starts_with("\\\\.\\pipe\\"))
-                .unwrap_or(false);
+            let identity_agent = self.identity_agent();
 
-            if needs_bridge {
-                match crate::agent_bridge::create_agent_bridge() {
+            if let Some(agent) = identity_agent.filter(|agent| agent.starts_with("\\\\.\\pipe\\")) {
+                match crate::agent_bridge::create_agent_bridge(agent.clone().into()) {
                     Ok((socket_path, bridge)) => {
                         // Replace the named pipe path with the Unix socket path
                         self.config.insert(
